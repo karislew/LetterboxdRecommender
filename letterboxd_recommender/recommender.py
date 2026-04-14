@@ -34,18 +34,25 @@ def get_recommendations(
     user_summary: str,
     scraped_top_films: list[dict],
     scraped_user_films: list[dict],
+    favorite_films: list[tuple] = None,
     n: int = 10,
 ) -> str:
     user_film_context = build_film_context(scraped_user_films)
     popular_film_context = build_film_context(scraped_top_films)
 
+    fav_names = ", ".join(name for name, _ in favorite_films if name) if favorite_films else "see profile above"
+
     system_prompt = (
         "You are a film expert and recommendation engine. "
         "You analyze a user's Letterboxd history and generate personalized recommendations. "
-        "Pay closest attention to: 5-star rated films, liked films (hearted), and highly rated films (4+). "
+        "Pay closest attention to: pinned favorite films, 5-star rated films, liked films, and 4+ rated films. "
         "These are the strongest signals of taste. Lower-rated films show what to avoid. "
+        "Prioritize VARIETY — recommend films across different genres, decades, and tones. "
+        "Do not cluster recommendations around one genre or era. "
         "For each recommendation provide a match score out of 10 and explain exactly which "
-        "films/patterns from their history informed the score."
+        "films/patterns from their history informed the score. "
+        "You are NOT limited to the candidate films provided — feel free to recommend any film "
+        "that fits the user's taste, including obscure or older films not in the candidate list."
     )
 
     user_prompt = f"""
@@ -55,8 +62,7 @@ Here is the user's complete Letterboxd history:
 
 ---
 
-OMDB metadata for the user's top rated films AND their 4 pinned Letterboxd favorites
-(Hairspray, The Book of Life, Strange Magic, Guardians of the Galaxy):
+OMDB metadata for the user's top rated films AND their pinned favorites ({fav_names}):
 
 {user_film_context if user_film_context.strip() else "No data available."}
 
@@ -71,11 +77,13 @@ Candidate films the user has NOT seen yet (mix of recent and older):
 Based on all of the above, recommend {n} films this user would love that they haven't seen yet.
 
 IMPORTANT WEIGHTING:
-- The 4 PINNED FAVORITES are the single strongest taste signal — weight these above everything else
+- PINNED FAVORITES are the single strongest taste signal — weight these above everything else
 - 5-star rated films and liked films are the next strongest signals
 - 4 to 4.5 star films are strong secondary signals
 - Films rated 1 to 2.5 stars show what to AVOID
-- Recommend a MIX of recent films AND older films — don't only suggest new releases
+- Recommend a MIX: different genres, different decades, different tones — no more than 2-3 from the same genre
+- Include at least 2 films from before 2000 if they fit the taste profile
+- You are NOT limited to the candidate list — recommend any film that fits, including deep cuts
 - Do NOT recommend any film already in their watched list
 
 For each recommendation use this exact format:
