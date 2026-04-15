@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Letterboxd Recommender</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="hero">
+    <h1>🎬 Film Recommender</h1>
+    <p class="subtitle">Personalized picks based on your Letterboxd history</p>
+  </div>
+
+  <div class="profile-grid">
+    {% for profile in profiles %}
+    <a href="/recommendations/{{ profile.username }}" class="profile-card">
+      <div class="avatar">{{ profile.avatar }}</div>
+      <div class="profile-name">{{ profile.display_name }}</div>
+      <div class="profile-sub">@{{ profile.username }}</div>
+      <div class="cta">Get Recommendations →</div>
+    </a>
+    {% endfor %}
+  </div>
+</body>
+</html>

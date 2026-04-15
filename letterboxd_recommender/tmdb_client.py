@@ -22,6 +22,10 @@ CANDIDATE_POOL = {
         ("Raw", 2016), ("Titane", 2021), ("Suspiria", 2018),
         ("The Babadook", 2014), ("Nope", 2022), ("Midsommar", 2019),
         ("Jennifer's Body", 2009), ("Thoroughbreds", 2017),
+        ("Us", 2019), ("The Black Phone", 2021), ("Talk to Me", 2022),
+        ("Pearl", 2022), ("X", 2022), ("Scream VI", 2023),
+        ("Barbarian", 2022), ("Men", 2022), ("Possessor", 2020),
+        ("The Menu", 2022), ("Fresh", 2022), ("Promising Young Woman", 2020),
     ],
     "comedy": [
         ("Booksmart", 2019), ("Superbad", 2007), ("Game Night", 2018),
@@ -29,7 +33,11 @@ CANDIDATE_POOL = {
         ("What We Do in the Shadows", 2014), ("Palm Springs", 2020),
         ("Bring It On", 2000), ("Mean Girls", 2004), ("Pitch Perfect", 2012),
         ("But I'm a Cheerleader", 1999), ("10 Things I Hate About You", 1999),
-        ("Legally Blonde", 2001), ("Heathers", 1988),
+        ("Legally Blonde", 2001), ("Heathers", 1988), ("Clueless", 1995),
+        ("Easy A", 2010), ("The Half of It", 2020), ("Do Revenge", 2022),
+        ("Bottoms", 2023), ("Romy and Michele's High School Reunion", 1997),
+        ("Wet Hot American Summer", 2001), ("Popstar: Never Stop Never Stopping", 2016),
+        ("The Disaster Artist", 2017), ("Knives Out", 2019),
     ],
     "romance_drama": [
         ("Past Lives", 2023), ("Portrait of a Lady on Fire", 2019),
@@ -40,12 +48,19 @@ CANDIDATE_POOL = {
         ("When Harry Met Sally...", 1989), ("Drive Me Crazy", 1999),
         ("Uptown Girls", 2003), ("The Broken Hearts Gallery", 2020),
         ("Erin Brockovich", 2000), ("Pretty Woman", 1990),
+        ("Imagine Me & You", 2005), ("Saving Face", 2004),
+        ("Carol", 2015), ("Disobedience", 2017), ("Happiest Season", 2020),
+        ("Fire Island", 2022), ("Love Simon", 2018),
+        ("Normal People", 2020), ("Fleabag", 2016), ("Shiva Baby", 2020),
     ],
     "action_adventure": [
         ("Mad Max: Fury Road", 2015), ("Dune: Part Two", 2024),
-        ("The Woman King", 2022), ("Promising Young Woman", 2020),
-        ("Kill Bill: Volume 1", 2003), ("Whip It", 2009),
-        ("Everything Everywhere All at Once", 2022),
+        ("The Woman King", 2022), ("Kill Bill: Volume 1", 2003),
+        ("Whip It", 2009), ("Everything Everywhere All at Once", 2022),
+        ("Atomic Blonde", 2017), ("Gunpowder Milkshake", 2021),
+        ("Birds of Prey", 2020), ("Spy", 2015), ("Hanna", 2011),
+        ("Haywire", 2011), ("Peppermint", 2018), ("Colombiana", 2011),
+        ("The Old Guard", 2020), ("Extraction", 2020),
     ],
     "musical_animation": [
         ("Dreamgirls", 2006), ("Rocketman", 2019), ("Sing Street", 2016),
@@ -54,6 +69,11 @@ CANDIDATE_POOL = {
         ("The Book of Life", 2014), ("Strange Magic", 2015),
         ("Puss in Boots: The Last Wish", 2022), ("The Wild Robot", 2024),
         ("Turning Red", 2022), ("Encanto", 2021), ("Bohemian Rhapsody", 2018),
+        ("Across the Spider-Verse", 2023), ("The Mitchells vs. the Machines", 2021),
+        ("Soul", 2020), ("Luca", 2021), ("Onward", 2020),
+        ("Wish", 2023), ("Strange World", 2022), ("Nimona", 2023),
+        ("Wolfwalkers", 2020), ("The Breadwinner", 2017),
+        ("A Silent Voice", 2016), ("Your Name", 2016),
     ],
     "prestige_drama": [
         ("Poor Things", 2023), ("Saltburn", 2023), ("Priscilla", 2023),
@@ -61,11 +81,18 @@ CANDIDATE_POOL = {
         ("Conclave", 2024), ("Whiplash", 2014), ("Lady Bird", 2017),
         ("Almost Famous", 2000), ("If Beale Street Could Talk", 2018),
         ("Moonlight", 2016), ("Hard Truths", 2024),
+        ("Tár", 2022), ("Women Talking", 2022), ("The Power of the Dog", 2021),
+        ("Spencer", 2021), ("Passing", 2021), ("Judas and the Black Messiah", 2021),
+        ("One Night in Miami", 2020), ("Selma", 2014), ("Hidden Figures", 2016),
+        ("The Color Purple", 2023), ("Rustin", 2023),
     ],
     "thriller_mystery": [
         ("Knives Out", 2019), ("Glass Onion", 2022), ("Gone Girl", 2014),
         ("The Girl with the Dragon Tattoo", 2011), ("Now You See Me", 2013),
-        ("Parasite", 2019), ("Get Out", 2017),
+        ("Parasite", 2019), ("Get Out", 2017), ("Us", 2019),
+        ("Searching", 2018), ("Run", 2020), ("Cam", 2018),
+        ("Coherence", 2013), ("The Invitation", 2015), ("Nocturnal Animals", 2016),
+        ("A Simple Favor", 2018), ("Promising Young Woman", 2020),
     ],
 }
 
@@ -90,7 +117,7 @@ def get_film_data(name: str, year: int | str) -> dict:
     """Fetch film metadata from OMDB by title + year."""
     result = {
         "title": name, "year": year, "genres": [],
-        "avg_rating": None, "description": "", "top_reviews": [], "url": "",
+        "avg_rating": None, "description": "", "top_reviews": [], "url": "", "poster": "",
     }
 
     params = {"apikey": _key(), "t": name, "y": str(year), "type": "movie", "plot": "short"}
@@ -112,6 +139,7 @@ def get_film_data(name: str, year: int | str) -> dict:
     result["description"] = data.get("Plot", "")
     result["genres"] = [g.strip() for g in data.get("Genre", "").split(",") if g.strip()]
     result["url"] = f"https://www.imdb.com/title/{data.get('imdbID', '')}/"
+    result["poster"] = data.get("Poster", "") if data.get("Poster", "") != "N/A" else ""
 
     imdb_rating = data.get("imdbRating", "N/A")
     if imdb_rating != "N/A":

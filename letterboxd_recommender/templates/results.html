@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Recs for {{ profile.display_name }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="hero">
+    <a href="/" class="back">← Back</a>
+    <div class="avatar large">{{ profile.avatar }}</div>
+    <h1>{{ profile.display_name }}'s Picks</h1>
+    <p class="subtitle">AI-powered recommendations based on your Letterboxd history</p>
+  </div>
+
+  <div id="loading" class="loading">
+    <div class="spinner"></div>
+    <p>Analyzing your taste profile and generating recommendations…</p>
+  </div>
+
+  <div id="main-content" class="hidden">
+
+    <!-- Highlights row -->
+    <div class="highlights-row">
+      <div class="highlight-section">
+        <h2 class="section-title">⭐ Your Top 5 Rated on Letterboxd</h2>
+        <div id="top-rated" class="film-strip"></div>
+      </div>
+      <div class="highlight-section">
+        <h2 class="section-title">❤️ Your Pinned Favorites on Letterboxd</h2>
+        <div id="favorites" class="film-strip"></div>
+      </div>
+    </div>
+
+    <!-- Recommendations -->
+    <div class="recs-header">
+      <h2 class="section-title">🎬 Recommended For You</h2>
+      <button id="refresh-btn" class="refresh-btn">↻ New Recommendations</button>
+    </div>
+
+    <div id="recs-grid" class="recs-grid"></div>
+  </div>
+
+  <div id="error-msg" class="error hidden"></div>
+
+  <script>
+    const username = "{{ username }}";
+
+    function renderStars(score) {
+      const filled = Math.round(score / 2);
+      return Array.from({length: 5}, (_, i) =>
+        `<span class="star ${i < filled ? 'filled' : ''}">★</span>`
+      ).join("");
+    }
+
+    function renderFilmStrip(containerId, films, showRating = false) {
+      const el = document.getElementById(containerId);
+      el.innerHTML = "";
+      films.forEach(f => {
+        const card = document.createElement("div");
+        card.className = "strip-card";
+        card.innerHTML = `
+          <a href="${f.imdb_url || '#'}" target="_blank">
+            ${f.poster
+              ? `<img src="${f.poster}" alt="${f.title}" class="strip-poster"/>`
+              : `<div class="strip-placeholder">🎬</div>`}
+          </a>
+          <div class="strip-title">${f.title}</div>
+          ${showRating ? `<div class="strip-rating">${f.rating}/5 ★</div>` : ""}
+        `;
+        el.appendChild(card);
+      });
+    }
+
+    function renderRecs(recs) {
+      const grid = document.getElementById("recs-grid");
+      grid.innerHTML = "";
+      recs.forEach((rec, i) => {
+        const card = document.createElement("div");
+        card.className = "rec-card";
+        card.innerHTML = `
+          <div class="poster-wrap">
+            ${rec.poster
+              ? `<img src="${rec.poster}" alt="${rec.title}" class="poster"/>`
+              : `<div class="poster-placeholder">🎬</div>`}
+            <div class="rank">#${i + 1}</div>
+          </div>
+          <div class="rec-info">
+            <div class="rec-title">${rec.title} <span class="rec-year">(${rec.year})</span></div>
+            <div class="genres">${(rec.genres || []).slice(0, 3).map(g => `<span class="genre-tag">${g}</span>`).join("")}</div>
+            <div class="score-row">
+              <div class="stars">${renderStars(rec.score)}</div>
+              <div class="score-label">${rec.score}/10 match</div>
+            </div>
+            ${rec.description ? `<p class="description">${rec.description}</p>` : ""}
+            <p class="reason">${rec.reason}</p>
+            ${rec.imdb_url ? `<a href="${rec.imdb_url}" target="_blank" class="imdb-link">View on IMDb →</a>` : ""}
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    function load() {
+      document.getElementById("loading").classList.remove("hidden");
+      document.getElementById("main-content").classList.add("hidden");
+      document.getElementById("error-msg").classList.add("hidden");
+
+      fetch(`/api/recommendations/${username}`)
+        .then(r => r.json())
+        .then(data => {
+          document.getElementById("loading").classList.add("hidden");
+
+          if (data.error) {
+            document.getElementById("error-msg").textContent = data.error;
+            document.getElementById("error-msg").classList.remove("hidden");
+            return;
+          }
+
+          renderFilmStrip("top-rated", data.highlights.top_rated, true);
+          renderFilmStrip("favorites", data.highlights.favorites, false);
+          renderRecs(data.recs);
+          document.getElementById("main-content").classList.remove("hidden");
+        })
+        .catch(err => {
+          document.getElementById("loading").classList.add("hidden");
+          document.getElementById("error-msg").textContent = "Something went wrong: " + err;
+          document.getElementById("error-msg").classList.remove("hidden");
+        });
+    }
+
+    document.getElementById("refresh-btn")?.addEventListener("click", load);
+    load();
+  </script>
+</body>
+</html>

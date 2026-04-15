@@ -1,8 +1,11 @@
 """
 AI-powered recommendation engine using Groq (free tier).
+Returns structured JSON recommendations.
 """
 
 import os
+import json
+import re
 from groq import Groq
 from dotenv import load_dotenv
 
@@ -18,14 +21,9 @@ def build_film_context(scraped_films: list[dict]) -> str:
         if f.get("genres"):
             lines.append(f"  Genres: {', '.join(f['genres'])}")
         if f.get("avg_rating"):
-            lines.append(f"  Letterboxd avg rating: {f['avg_rating']}/5")
+            lines.append(f"  IMDb: {f['avg_rating']}/5")
         if f.get("description"):
-            lines.append(f"  Description: {f['description'][:200]}")
-        if f.get("top_reviews"):
-            lines.append("  Sample community reviews:")
-            for r in f["top_reviews"][:3]:
-                rating_str = f" ({r['rating']}/5)" if r["rating"] else ""
-                lines.append(f"    - {r['author']}{rating_str}: {r['text'][:200]}")
+            lines.append(f"  Plot: {f['description'][:100]}")
         lines.append("")
     return "\n".join(lines)
 
@@ -36,63 +34,45 @@ def get_recommendations(
     scraped_user_films: list[dict],
     favorite_films: list[tuple] = None,
     n: int = 10,
-) -> str:
+) -> list[dict]:
+    """
+    Returns a list of recommendation dicts:
+    [{ title, year, score, reason }, ...]
+    """
     user_film_context = build_film_context(scraped_user_films)
     popular_film_context = build_film_context(scraped_top_films)
-
-    fav_names = ", ".join(name for name, _ in favorite_films if name) if favorite_films else "see profile above"
+    fav_names = ", ".join(name for name, _ in favorite_films if name) if favorite_films else "see profile"
 
     system_prompt = (
         "You are a film expert and recommendation engine. "
-        "You analyze a user's Letterboxd history and generate personalized recommendations. "
-        "Pay closest attention to: pinned favorite films, 5-star rated films, liked films, and 4+ rated films. "
-        "These are the strongest signals of taste. Lower-rated films show what to avoid. "
-        "Prioritize VARIETY — recommend films across different genres, decades, and tones. "
-        "Do not cluster recommendations around one genre or era. "
-        "For each recommendation provide a match score out of 10 and explain exactly which "
-        "films/patterns from their history informed the score. "
-        "You are NOT limited to the candidate films provided — feel free to recommend any film "
-        "that fits the user's taste, including obscure or older films not in the candidate list."
+        "Analyze the user's Letterboxd history and return ONLY a JSON array of recommendations. "
+        "Each item must have: title (string), year (number), score (number 1-10), reason (string, 2 sentences max). "
+        "Prioritize pinned favorites, 5-star films, and liked films as taste signals. "
+        "Ensure VARIETY — different genres, decades, tones. No more than 2-3 from the same genre. "
+        "Include at least 2 films from before 2000. "
+        "You are NOT limited to the candidate list — recommend any film that fits. "
+        "Return ONLY valid JSON, no markdown, no explanation outside the array."
     )
 
     user_prompt = f"""
-Here is the user's complete Letterboxd history:
-
+User's Letterboxd history:
 {user_summary}
 
----
+OMDB metadata for user's top rated + pinned favorites ({fav_names}):
+{user_film_context if user_film_context.strip() else "None"}
 
-OMDB metadata for the user's top rated films AND their pinned favorites ({fav_names}):
+Candidate unseen films:
+{popular_film_context if popular_film_context.strip() else "None"}
 
-{user_film_context if user_film_context.strip() else "No data available."}
+Return a JSON array of exactly {n} film recommendations the user hasn't seen.
+Avoid films already in their watched list.
+Films rated 1-2.5 stars = avoid recommending similar.
 
----
-
-Candidate films the user has NOT seen yet (mix of recent and older):
-
-{popular_film_context if popular_film_context.strip() else "No data available."}
-
----
-
-Based on all of the above, recommend {n} films this user would love that they haven't seen yet.
-
-IMPORTANT WEIGHTING:
-- PINNED FAVORITES are the single strongest taste signal — weight these above everything else
-- 5-star rated films and liked films are the next strongest signals
-- 4 to 4.5 star films are strong secondary signals
-- Films rated 1 to 2.5 stars show what to AVOID
-- Recommend a MIX: different genres, different decades, different tones — no more than 2-3 from the same genre
-- Include at least 2 films from before 2000 if they fit the taste profile
-- You are NOT limited to the candidate list — recommend any film that fits, including deep cuts
-- Do NOT recommend any film already in their watched list
-
-For each recommendation use this exact format:
-
-[NUMBER]. TITLE (YEAR)
-Match Score: X/10
-Why it fits: 2-3 sentences referencing specific films from their history that informed this recommendation.
-
-Leave a blank line between each recommendation.
+Format:
+[
+  {{"title": "Film Title", "year": 2023, "score": 9, "reason": "2 sentence explanation referencing their specific history."}},
+  ...
+]
 """
 
     response = client.chat.completions.create(
@@ -105,4 +85,15 @@ Leave a blank line between each recommendation.
         max_tokens=2000,
     )
 
-    return response.choices[0].message.content
+    raw = response.choices[0].message.content.strip()
+
+    # Extract JSON array from response
+    match = re.search(r'\[.*\]', raw, re.DOTALL)
+    if match:
+        try:
+            return json.loads(match.group())
+        except json.JSONDecodeError:
+            pass
+
+    # Fallback: return raw as single item
+    return [{"title": "Error parsing recommendations", "year": 0, "score": 0, "reason": raw[:200]}]

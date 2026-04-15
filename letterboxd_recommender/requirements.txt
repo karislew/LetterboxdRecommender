@@ -4,3 +4,4 @@ groq
 pandas
 python-dotenv
 lxml
+flask
