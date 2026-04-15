@@ -27,7 +27,6 @@ PROFILES = {
     },
 }
 
-
 def get_profile_highlights(data: dict) -> dict:
     """Return top 5 rated films and top 4 favorites with OMDB posters."""
     highlights = {"top_rated": [], "favorites": []}
@@ -89,7 +88,7 @@ def build_recommendations(username: str) -> dict:
 
     # Shuffle so each run picks different candidates → different recs each time
     random.shuffle(unseen_candidates)
-    selected = unseen_candidates[:12]
+    selected = unseen_candidates[:20]
 
     omdb_candidates = [get_film_data(f["title"], f["year"]) for f in selected]
 
@@ -143,4 +142,5 @@ def api_recommendations(username):
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=False)

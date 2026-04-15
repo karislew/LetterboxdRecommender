@@ -93,9 +93,9 @@ def load_export(export_dir: str) -> dict:
         high = ratings[ratings["Rating"] >= 4].sort_values("Rating", ascending=False)
         for _, row in high.iterrows():
             liked_tag = " [liked]" if row["Name"] in liked_names else ""
-            # Cap review at 80 chars to save tokens
+            # Full review text restored
             review = reviews_map.get(row["Name"], "")
-            review_tag = f'  Review: "{review[:80]}…"' if review else ""
+            review_tag = f'  Review: "{review}"' if review else ""
             lines.append(f"  {row['Name']} ({row['Year']}) — {row['Rating']}/5{liked_tag}{review_tag}")
 
     lines.append("")

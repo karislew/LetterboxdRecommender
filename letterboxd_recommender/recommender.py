@@ -21,9 +21,12 @@ def build_film_context(scraped_films: list[dict]) -> str:
         if f.get("genres"):
             lines.append(f"  Genres: {', '.join(f['genres'])}")
         if f.get("avg_rating"):
-            lines.append(f"  IMDb: {f['avg_rating']}/5")
+            lines.append(f"  IMDb avg rating: {f['avg_rating']}/5")
         if f.get("description"):
-            lines.append(f"  Plot: {f['description'][:100]}")
+            lines.append(f"  Description: {f['description'][:200]}")
+        if f.get("top_reviews"):
+            for r in f["top_reviews"][:2]:
+                lines.append(f"  {r['author']}: {r['text'][:150]}")
         lines.append("")
     return "\n".join(lines)
 

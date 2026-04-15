@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: letterboxd-recommender
+    runtime: python
+    buildCommand: pip install -r letterboxd_recommender/requirements.txt
+    startCommand: gunicorn letterboxd_recommender.app:app
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false
+      - key: OMDB_API_KEY
+        sync: false
