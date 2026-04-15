@@ -6,9 +6,9 @@ import os
 import random
 from collections import Counter
 from flask import Flask, render_template, jsonify
-from data_loader import load_export
-from tmdb_client import get_film_data, get_popular_films
-from recommender import get_recommendations
+from letterboxd_recommender.data_loader import load_export
+from letterboxd_recommender.tmdb_client import get_film_data, get_popular_films
+from letterboxd_recommender.recommender import get_recommendations
 
 app = Flask(__name__)
 
